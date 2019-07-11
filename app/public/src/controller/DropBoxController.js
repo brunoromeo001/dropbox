@@ -29,7 +29,7 @@ class DropBoxController{
         authDomain: "dropbox-clone-e13d5.firebaseapp.com",
         databaseURL: "https://dropbox-clone-e13d5.firebaseio.com",
         projectId: "dropbox-clone-e13d5",
-        storageBucket: "",
+        storageBucket: "dropbox-clone-e13d5.appspot.com",
         messagingSenderId: "962759732395",
         appId: "1:962759732395:web:fef71c303a0eca9e"
       };
@@ -148,7 +148,13 @@ class DropBoxController{
 
                 responses.forEach(resp =>{                    
 
-                    this.getFireBaseRef().push().set(resp.files['input-file']);
+                    this.getFireBaseRef().push().set({
+                        
+                        name: resp.name,
+                        type: resp.contentType,
+                        path: resp.downloadURLs[0],
+                        size: resp.size
+                    });
                 });
 
                 this.uploadComplete();
@@ -228,21 +234,41 @@ class DropBoxController{
         let promises = [];
 
         [...files].forEach(file=>{
-            
-            let formData = new FormData();
-
-            formData.append('input-file', file);
-                                   
-            promises.push(this.ajax('/upload', 'POST', formData, ()=>{
+                        
+            promises.push(new Promise((resolve, reject)=>{
                 
-                this.uploadProgress(event, file);
+                let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name); 
+    
+                let task = fileRef.put(file);
+    
+                task.on('state_changed', snapshot =>{
 
-            }, () => {
+                    this.uploadProgress({
+                        
+                        loaded: snapshot.bytesTransferred,
+                        total: snapshot.totalBytes
 
-                this.startUploadTime = Date.now();
-            
+                    }, file);
+    
+                }, error => {
+    
+                    console.log(error);
+                    reject(error);
+    
+                }, () =>{
+                    
+                    fileRef.getMetadata().then(metadata =>{
+
+                        resolve(metadata);
+                    
+                    }).catch(err =>{
+
+                        reject(err);
+                    });    
+                    
+                });
+                
             }));
-
         });
 
         return Promise.all(promises);
