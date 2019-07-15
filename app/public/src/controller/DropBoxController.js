@@ -331,6 +331,7 @@ class DropBoxController{
     
                 task.on('state_changed', snapshot =>{
 
+
                     this.uploadProgress({
                         
                         loaded: snapshot.bytesTransferred,
@@ -358,6 +359,7 @@ class DropBoxController{
                 
             }));
         });
+        this.startUploadTime = Date.now(); 
 
         return Promise.all(promises);
     }
